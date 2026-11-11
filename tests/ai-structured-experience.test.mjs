@@ -31,6 +31,7 @@ describe("PayPilot Phase 3C: AI Command Centre Experience Tests", () => {
     // 2a. Revenue branch
     const revRes = await processAIChatRequest("Show revenue performance", [], {
       geminiOptions: { apiKey: "" },
+      asOfDate: "2026-11-07T00:00:00Z",
     });
     assert.equal(revRes.isLiveGemini, false);
     assert.ok(revRes.structuredData?.revenue, "Must include structured revenue data");
