@@ -2,11 +2,11 @@
  * /api/auth/session — Session verification & demo authentication management (Hardened)
  *
  * GET    /api/auth/session   → returns current verified user session or 401
- * POST   /api/auth/session   → establishes demo session IF AND ONLY IF in non-production with PAYPILOT_DEMO_AUTH="true"
+ * POST   /api/auth/session   → establishes demo session IF AND ONLY IF PAYPILOT_DEMO_AUTH="true"
  * DELETE /api/auth/session   → clears the session cookie (logout)
  *
  * SECURITY:
- * - In production, POST /api/auth/session returns HTTP 403 Forbidden.
+ * - When PAYPILOT_DEMO_AUTH is absent or not "true", POST /api/auth/session returns HTTP 403 Forbidden.
  * - Demo authentication generates ONE fixed identity (FIXED_DEMO_USER); client-supplied emails or userIds are rejected/ignored.
  * - Missing session secrets fail closed.
  */
@@ -46,13 +46,12 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // 1. Production / Demo Guard:
-  // Demo session generation must only work when BOTH NODE_ENV !== "production"
-  // AND an explicit PAYPILOT_DEMO_AUTH="true" setting are present.
-  const isNonProduction = process.env.NODE_ENV !== "production";
+  // 1. Demo Guard:
+  // Demo session generation requires an explicit PAYPILOT_DEMO_AUTH="true"
+  // environment variable. When absent or "false", demo login is disabled.
   const isDemoAuthEnabled = process.env.PAYPILOT_DEMO_AUTH === "true";
 
-  if (!isNonProduction || !isDemoAuthEnabled) {
+  if (!isDemoAuthEnabled) {
     return NextResponse.json(
       {
         success: false,

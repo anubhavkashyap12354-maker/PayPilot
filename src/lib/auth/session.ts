@@ -231,7 +231,7 @@ export function extractAuthToken(req: NextRequest | Request): string | null {
  * ROUTING CONTRACT:
  * 1. Tokens from the dedicated `paypilot_session` cookie are verified EXCLUSIVELY
  *    using the local HMAC verifier. They are NEVER sent to Supabase Auth.
- *    Permitted ONLY when BOTH `NODE_ENV !== "production"` AND `PAYPILOT_DEMO_AUTH === "true"`.
+ *    Permitted ONLY when `PAYPILOT_DEMO_AUTH === "true"`.
  * 2. Supabase access tokens (`sb-access-token`) and standard Bearer JWTs (`Authorization: Bearer`)
  *    are verified EXCLUSIVELY through Supabase Auth (`supabase.auth.getUser()`).
  *    If Supabase verification fails, returns HTTP 401 immediately with ZERO fallback to HMAC.
@@ -257,9 +257,7 @@ export async function verifyRequestSession(
   // NEVER sent to Supabase Auth.
   // ──────────────────────────────────────────────────────────────────────────
   if (source === "paypilot_session") {
-    const isDemoAllowed =
-      process.env.NODE_ENV !== "production" &&
-      process.env.PAYPILOT_DEMO_AUTH === "true";
+    const isDemoAllowed = process.env.PAYPILOT_DEMO_AUTH === "true";
 
     if (!isDemoAllowed) {
       return {

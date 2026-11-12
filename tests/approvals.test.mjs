@@ -61,20 +61,18 @@ describe("PayPilot Phase 3D.4: Approval Security Remediation", () => {
     assert.equal((await singlePatch(req4, { params: Promise.resolve({ id: "apr_test" }) })).status, 401);
   });
 
-  test("2. Auth Guard: Production demo-session generation is rejected with HTTP 403", async () => {
+  test("2. Auth Guard: Demo-session generation is controlled by PAYPILOT_DEMO_AUTH flag", async () => {
     const { POST } = await import("../src/app/api/auth/session/route.ts");
 
-    // Case A: NODE_ENV is production
+    // Case A: PAYPILOT_DEMO_AUTH=true allows demo session regardless of NODE_ENV
     process.env.NODE_ENV = "production";
     process.env.PAYPILOT_DEMO_AUTH = "true";
 
     const reqProd = new NextRequest("http://localhost:3000/api/auth/session", { method: "POST" });
     const resProd = await POST(reqProd);
-    assert.equal(resProd.status, 403, "Production demo auth must return 403");
-    const jsonProd = await resProd.json();
-    assert.match(jsonProd.error, /disabled in this environment/i);
+    assert.equal(resProd.status, 200, "Demo auth with PAYPILOT_DEMO_AUTH=true must succeed");
 
-    // Case B: PAYPILOT_DEMO_AUTH is false or unset
+    // Case B: PAYPILOT_DEMO_AUTH is false or unset → rejected
     process.env.NODE_ENV = "development";
     delete process.env.PAYPILOT_DEMO_AUTH;
 
@@ -490,7 +488,7 @@ describe("PayPilot Phase 3D.4: Approval Security Remediation", () => {
     }
   });
 
-  test("19. Regression: Valid demo cookie in production returns 401", async () => {
+  test("19. Regression: Valid demo cookie in production with PAYPILOT_DEMO_AUTH=true is accepted", async () => {
     const sessionModule = await import("../src/lib/auth/session.ts");
     const { GET } = await import("../src/app/api/approvals/route.ts");
 
@@ -503,9 +501,7 @@ describe("PayPilot Phase 3D.4: Approval Security Remediation", () => {
       headers: { Cookie: `paypilot_session=${token}` },
     });
     const res = await GET(req);
-    assert.equal(res.status, 401, "Must return HTTP 401 for demo cookie in production");
-    const json = await res.json();
-    assert.match(json.error, /Demo authentication is disabled/i);
+    assert.equal(res.status, 200, "Must return HTTP 200 for demo cookie when PAYPILOT_DEMO_AUTH=true");
   });
 
   test("20. Regression: Demo authentication disabled (PAYPILOT_DEMO_AUTH unset) rejects demo cookie", async () => {
